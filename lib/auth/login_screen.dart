@@ -1,3 +1,5 @@
+import 'package:daytask/auth/signup_screen.dart';
+import 'package:daytask/components/navigationBar/bottomNavBar.dart';
 import 'package:daytask/constants/color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,7 +10,7 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF101A24),
+      backgroundColor: AppColors.primaryColor,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
         child: SingleChildScrollView(
@@ -125,7 +127,9 @@ class LoginPage extends StatelessWidget {
                     backgroundColor: AppColors.buttonColor,
                     shape: RoundedRectangleBorder(),
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_)=>Bottomnavbar()));
+                  },
                   child: const Text(
                     'Log In',
                     style: TextStyle(
@@ -174,9 +178,7 @@ class LoginPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(0),
                     ),
                   ),
-                  onPressed: () {
-                   
-                  },
+                  onPressed: () {},
                 ),
               ),
 
@@ -184,7 +186,12 @@ class LoginPage extends StatelessWidget {
 
               Center(
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => SignUpPage()),
+                    );
+                  },
                   child: const Text.rich(
                     TextSpan(
                       text: "Don’t have an account? ",
@@ -211,7 +218,7 @@ buildTextField(String name) {
   return Text(
     name,
     style: TextStyle(
-      color: Color.fromRGBO(140, 170, 185, 1),
+      color: AppColors.deepBlueText,
       fontSize: 16,
       fontWeight: FontWeight.w400,
     ),

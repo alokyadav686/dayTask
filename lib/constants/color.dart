@@ -5,4 +5,6 @@ class AppColors{
   static const Color buttonColor = Color.fromRGBO(254, 211, 106, 1);
   static const Color lightBlue = Color.fromRGBO(69, 90, 100, 1);
   static const Color deepBlueText = Color.fromRGBO(140, 170, 185, 1);
+  static const Color navItemColor = Color.fromRGBO(97, 125, 138, 1);
+
 }
