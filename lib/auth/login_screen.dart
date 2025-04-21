@@ -1,11 +1,49 @@
+import 'package:daytask/auth/auth_services.dart';
 import 'package:daytask/auth/signup_screen.dart';
 import 'package:daytask/components/navigationBar/bottomNavBar.dart';
 import 'package:daytask/constants/color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final authService = AuthServices();
+
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  _togglePasswordVisibility() {
+    setState(() {
+      _obscurePassword = !_obscurePassword;
+    });
+  }
+
+  void login() async {
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    try {
+      await authService.signInWithEmailAndPassword(email, password);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Bottomnavbar()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error : $e")));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +105,7 @@ class LoginPage extends StatelessWidget {
               const SizedBox(height: 10),
 
               TextField(
+                controller: _emailController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.email, color: Colors.white),
@@ -88,12 +127,18 @@ class LoginPage extends StatelessWidget {
 
               TextField(
                 obscureText: true,
+                controller: _passwordController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.lock, color: Colors.white),
-                  suffixIcon: const Icon(
-                    Icons.visibility_off,
-                    color: Colors.white,
+                  suffixIcon: IconButton(
+                    onPressed: _togglePasswordVisibility,
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: Colors.white,
+                    ),
                   ),
                   hintText: 'Password',
                   hintStyle: const TextStyle(color: Colors.white70),
@@ -128,7 +173,7 @@ class LoginPage extends StatelessWidget {
                     shape: RoundedRectangleBorder(),
                   ),
                   onPressed: () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_)=>Bottomnavbar()));
+                    login();
                   },
                   child: const Text(
                     'Log In',

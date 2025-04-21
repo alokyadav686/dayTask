@@ -1,3 +1,4 @@
+import 'package:daytask/auth/auth_services.dart';
 import 'package:daytask/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -11,10 +12,49 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  bool _obscurePassword = true;
+
+  final authService = AuthServices();
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool agreedToTerms = false;
+
+  void signUp() async {
+    final name = _nameController.text;
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in all the fields")),
+      );
+      return;
+    }
+
+    try {
+      await authService.signUpWithEmailPassword(email, password);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => LoginPage()),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error : $e")));
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +112,7 @@ class _SignUpPageState extends State<SignUpPage> {
               buildTextLabel("Full Name"),
               const SizedBox(height: 8),
               buildTextField(
-                controller: nameController,
+                controller: _nameController,
                 hintText: "Enter Your Name",
                 icon: Icons.person,
               ),
@@ -81,7 +121,7 @@ class _SignUpPageState extends State<SignUpPage> {
               buildTextLabel("Email Address"),
               const SizedBox(height: 8),
               buildTextField(
-                controller: emailController,
+                controller: _emailController,
                 hintText: "Enter Your Email",
                 icon: Icons.email,
                 keyboardType: TextInputType.emailAddress,
@@ -91,11 +131,21 @@ class _SignUpPageState extends State<SignUpPage> {
               buildTextLabel("Password"),
               const SizedBox(height: 8),
               buildTextField(
-                controller: passwordController,
+                controller: _passwordController,
                 hintText: "Password",
                 icon: Icons.lock,
-                obscureText: true,
-                suffixIcon: const Icon(Icons.visibility_off, color: Colors.white),
+                obscureText: _obscurePassword,
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white,
+                  ),
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -139,8 +189,17 @@ class _SignUpPageState extends State<SignUpPage> {
                     shape: RoundedRectangleBorder(),
                   ),
                   onPressed: () {
-                     if (!agreedToTerms) return;
-                     
+                    if (agreedToTerms) {
+                      signUp();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Please agree to the terms to continue",
+                          ),
+                        ),
+                      );
+                    }
                   },
                   child: const Text(
                     'Sign Up',
@@ -190,9 +249,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  onPressed: () {
-                    
-                  },
+                  onPressed: () {},
                 ),
               ),
 
@@ -200,7 +257,10 @@ class _SignUpPageState extends State<SignUpPage> {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => LoginPage()),
+                    );
                   },
                   child: const Text.rich(
                     TextSpan(
