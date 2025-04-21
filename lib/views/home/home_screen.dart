@@ -163,7 +163,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               'd MMMM',
                             ).format(dueDate);
                             return GestureDetector(
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context)=>TaskDetailsPage())),
+onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => TaskDetailsPage(taskId: task['id']),
+    ),
+  );
+},
                               child: OngoingCard(
                                 title: task['title'],
                                 dueDate: formattedDate,

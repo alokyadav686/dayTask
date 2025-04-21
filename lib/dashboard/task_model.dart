@@ -1,9 +1,12 @@
 import 'package:daytask/constants/color.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TaskDetailsPage extends StatefulWidget {
-  const TaskDetailsPage({super.key});
+  final int taskId;
+
+  const TaskDetailsPage({super.key, required this.taskId});
 
   @override
   State<TaskDetailsPage> createState() => _TaskDetailsPageState();
@@ -11,12 +14,10 @@ class TaskDetailsPage extends StatefulWidget {
 
 class _TaskDetailsPageState extends State<TaskDetailsPage> {
   final supabase = Supabase.instance.client;
-
-  List<Map<String, dynamic>> task = [];
+  Map<String, dynamic>? task;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     fetchTask();
   }
@@ -25,11 +26,11 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
     final response = await supabase
         .from('tasks')
         .select()
-        .eq('is_complete', false)
-        .order('due_date', ascending: true);
+        .eq('id', widget.taskId)
+        .single();
 
     setState(() {
-      task = List<Map<String, dynamic>>.from(response);
+      task = Map<String, dynamic>.from(response);
     });
   }
 
@@ -47,98 +48,100 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 20),
-            const Text(
-              "Real Estate App Design",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Schyler',
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _infoCard(Icons.calendar_today_outlined, "20 June"),
-                const SizedBox(width: 12),
-                _infoCard(Icons.group_outlined, "Project Team"),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              "Project Details",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Lorem Ipsum is simply dummy text of the printing and typesetting industry. "
-              "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
-              style: TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                const Text(
-                  "Project Progress",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+      body: task == null
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    task!['title'] ?? "Task Title",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Schyler',
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CircularProgressIndicator(
-                        value: 0.6,
-                        color: Colors.yellow,
-                        backgroundColor: Colors.white24,
-                        strokeWidth: 4,
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _infoCard(Icons.calendar_today_outlined,
+                          DateFormat('d MMMM').format(DateTime.parse(task!['due_date']))),
+                      const SizedBox(width: 12),
+                      _infoCard(Icons.group_outlined, "Project Team"),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Project Details",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    task!['details'] ?? "No details available",
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      const Text(
+                        "Project Progress",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const Spacer(),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressIndicator(
+                              value: 0.6, // You can make this dynamic based on your task data
+                              color: Colors.yellow,
+                              backgroundColor: Colors.white24,
+                              strokeWidth: 4,
+                            ),
+                          ),
+                          const Text(
+                            "60%",
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "All Tasks",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const Text(
-                      "60%",
-                      style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView(
+                      children: const [
+                        _taskTile("User Interviews", true),
+                        _taskTile("Wireframes", true),
+                        _taskTile("Design System", true),
+                        _taskTile("Icons", false),
+                        _taskTile("Final Mockups", false),
+                      ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              "All Tasks",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: ListView(
-                children: const [
-                  _taskTile("User Interviews", true),
-                  _taskTile("Wireframes", true),
-                  _taskTile("Design System", true),
-                  _taskTile("Icons", false),
-                  _taskTile("Final Mockups", false),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
       bottomNavigationBar: Container(
         color: const Color(0xFF1E2A38),
         padding: const EdgeInsets.all(16),
@@ -205,10 +208,9 @@ class _taskTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               border: Border.all(color: Colors.white70),
             ),
-            child:
-                isChecked
-                    ? const Icon(Icons.check, size: 16, color: Colors.black)
-                    : null,
+            child: isChecked
+                ? const Icon(Icons.check, size: 16, color: Colors.black)
+                : null,
           ),
         ],
       ),
