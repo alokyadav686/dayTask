@@ -1,7 +1,11 @@
 import 'package:daytask/constants/color.dart';
+import 'package:daytask/dashboard/task_model.dart';
+import 'package:daytask/views/home/widget/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,6 +15,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> tasks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTasks();
+  }
+
+  Future<void> fetchTasks() async {
+    final response = await supabase
+        .from('tasks')
+        .select()
+        .eq('is_complete', false)
+        .order('due_date', ascending: true);
+
+    setState(() {
+      tasks = List<Map<String, dynamic>>.from(response);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,14 +66,24 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.white,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'Schyler'
+                            fontFamily: 'Schyler',
                           ),
                         ),
                       ],
                     ),
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundImage: AssetImage("assets/avatar.png"),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProfileScreen(),
+                          ),
+                        );
+                      },
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundImage: AssetImage("assets/avatar.png"),
+                      ),
                     ),
                   ],
                 ),
@@ -87,7 +122,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 58,
                       width: 58,
                       decoration: BoxDecoration(color: AppColors.buttonColor),
-                      child:  SvgPicture.asset("assets/images/menu.svg", color: Colors.black,width: 10, height: 10,),
+                      child: SvgPicture.asset(
+                        "assets/images/menu.svg",
+                        color: Colors.black,
+                        width: 10,
+                        height: 10,
+                      ),
                     ),
                   ],
                 ),
@@ -113,16 +153,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Ongoing Projects
                 _sectionHeader("Ongoing Projects"),
                 const SizedBox(height: 12),
-                const OngoingCard(
-                  title: "Mobile App Wireframe",
-                  dueDate: "21 March",
-                  percent: 0.75,
-                ),
-                const OngoingCard(
-                  title: "Real Estate App Design",
-                  dueDate: "20 June",
-                  percent: 0.60,
-                ),
+                tasks.isEmpty
+                    ? Center(child: CircularProgressIndicator())
+                    : Column(
+                      children:
+                          tasks.map((task) {
+                            final dueDate = DateTime.parse(task['due_date']);
+                            final formattedDate = DateFormat(
+                              'd MMMM',
+                            ).format(dueDate);
+                            return GestureDetector(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context)=>TaskDetailsPage())),
+                              child: OngoingCard(
+                                title: task['title'],
+                                dueDate: formattedDate,
+                                percent: 0.6, // optionally make dynamic later
+                              ),
+                            );
+                          }).toList(),
+                    ),
+
                 const SizedBox(height: 20),
               ],
             ),
@@ -146,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const Text(
           "See all",
-          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.w500),
+          style: TextStyle(color: AppColors.buttonColor, fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -167,9 +217,7 @@ class CompletedCard extends StatelessWidget {
       width: 200,
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-      ),
+      decoration: BoxDecoration(color: color),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -219,8 +267,7 @@ class OngoingCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF37474F),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.lightBlue,
       ),
       child: Row(
         children: [

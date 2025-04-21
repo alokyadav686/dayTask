@@ -1,5 +1,5 @@
-import 'package:daytask/auth/login_screen.dart';
 import 'package:daytask/components/navigationBar/bottomNavBar.dart';
+import 'package:daytask/services/splash_services/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -22,7 +22,7 @@ class AuthGate extends StatelessWidget {
           return Bottomnavbar();
         }
         else{
-          return LoginPage();
+          return SplashScreen();
         }
        }
        );

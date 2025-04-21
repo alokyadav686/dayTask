@@ -1,5 +1,4 @@
-import 'package:daytask/services/splash_services/splash_screen.dart'
-    show SplashScreen;
+import 'package:daytask/auth/auth_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,5 +9,5 @@ void main() async {
     url: 'https://qkcvorllqckqhztfeawm.supabase.co',
   );
 
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: SplashScreen()));
+  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: AuthGate()));
 }

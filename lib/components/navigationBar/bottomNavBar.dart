@@ -1,4 +1,5 @@
 import 'package:daytask/constants/color.dart';
+import 'package:daytask/dashboard/task_tile.dart';
 import 'package:daytask/views/calendar/calendar_screen.dart';
 import 'package:daytask/views/chat/chat_screen.dart';
 import 'package:daytask/views/home/home_screen.dart';
@@ -15,7 +16,12 @@ class Bottomnavbar extends StatefulWidget {
 
 class _BottomnavbarState extends State<Bottomnavbar> {
   int currentIndex = 0;
-  final _screen = [HomeScreen(), ChatScreen(), Calendar(), NotificationScreen()];
+  final _screen = [
+    HomeScreen(),
+    ChatScreen(),
+    Calendar(),
+    NotificationScreen(),
+  ];
   _onItemTapped(int index) {
     setState(() {
       currentIndex = index;
@@ -23,7 +29,6 @@ class _BottomnavbarState extends State<Bottomnavbar> {
   }
 
   @override
-  
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screen[currentIndex],
@@ -54,7 +59,15 @@ class CustomNavBar extends StatelessWidget {
         children: [
           _buildNavItem("assets/images/home2.svg", "Home", 0),
           _buildNavItem("assets/images/messages1.svg", "Chat", 1),
-          _buildCenterNavItem(),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TaskTile()),
+              );
+            },
+            child: _buildCenterNavItem(),
+          ),
           _buildNavItem("assets/images/calendar.svg", "Calendar", 2),
           _buildNavItem("assets/images/notification1.svg", "Notification", 3),
         ],
