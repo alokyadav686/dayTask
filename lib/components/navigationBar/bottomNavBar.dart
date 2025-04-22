@@ -20,7 +20,7 @@ class _BottomnavbarState extends State<Bottomnavbar> {
     HomeScreen(),
     ChatScreen(),
     Calendar(),
-    NotificationScreen(),
+    NotificationsPage(),
   ];
   _onItemTapped(int index) {
     setState(() {
