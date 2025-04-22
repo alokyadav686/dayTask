@@ -163,18 +163,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               'd MMMM',
                             ).format(dueDate);
                             return GestureDetector(
-onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => TaskDetailsPage(taskId: task['id']),
-    ),
-  );
-},
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) =>
+                                            TaskDetailsPage(taskId: task['id']),
+                                  ),
+                                );
+                              },
                               child: OngoingCard(
                                 title: task['title'],
                                 dueDate: formattedDate,
-                                percent: 0.6, // optionally make dynamic later
+                                percent: 0.6,
                               ),
                             );
                           }).toList(),
@@ -203,7 +205,10 @@ onTap: () {
         ),
         const Text(
           "See all",
-          style: TextStyle(color: AppColors.buttonColor, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: AppColors.buttonColor,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -273,9 +278,7 @@ class OngoingCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.lightBlue,
-      ),
+      decoration: BoxDecoration(color: AppColors.lightBlue),
       child: Row(
         children: [
           Expanded(
