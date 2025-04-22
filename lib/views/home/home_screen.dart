@@ -1,11 +1,12 @@
-import 'package:daytask/constants/color.dart';
-import 'package:daytask/dashboard/task_model.dart';
-import 'package:daytask/views/home/widget/profile_screen.dart';
+import 'package:daytask/dashboard/task_detail.dart';
+import 'package:daytask/views/home/widget/completed_card.dart';
+import 'package:daytask/views/home/widget/ongoing_card.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:intl/intl.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:daytask/constants/color.dart';
+import 'package:daytask/views/home/widget/profile_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,25 +17,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final supabase = Supabase.instance.client;
-  List<Map<String, dynamic>> tasks = [];
-
-  @override
-  void initState() {
-    super.initState();
-    fetchTasks();
-  }
-
-  Future<void> fetchTasks() async {
-    final response = await supabase
-        .from('tasks')
-        .select()
-        .eq('is_complete', false)
-        .order('due_date', ascending: true);
-
-    setState(() {
-      tasks = List<Map<String, dynamic>>.from(response);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,11 +58,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ProfileScreen(),
+                            builder: (context) =>  ProfileScreen(),
                           ),
                         );
                       },
-                      child: CircleAvatar(
+                      child: const CircleAvatar(
                         radius: 24,
                         backgroundImage: AssetImage("assets/avatar.png"),
                       ),
@@ -96,8 +78,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         height: 58,
-                        decoration: BoxDecoration(
-                          color: const Color.fromRGBO(69, 90, 100, 1),
+                        decoration: const BoxDecoration(
+                          color: Color.fromRGBO(69, 90, 100, 1),
                         ),
                         child: const Row(
                           children: [
@@ -121,7 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       height: 58,
                       width: 58,
-                      decoration: BoxDecoration(color: AppColors.buttonColor),
+                      decoration:
+                          const BoxDecoration(color: AppColors.buttonColor),
                       child: SvgPicture.asset(
                         "assets/images/menu.svg",
                         color: Colors.black,
@@ -153,35 +136,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Ongoing Projects
                 _sectionHeader("Ongoing Projects"),
                 const SizedBox(height: 12),
-                tasks.isEmpty
-                    ? Center(child: CircularProgressIndicator())
-                    : Column(
-                      children:
-                          tasks.map((task) {
-                            final dueDate = DateTime.parse(task['due_date']);
-                            final formattedDate = DateFormat(
-                              'd MMMM',
-                            ).format(dueDate);
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) =>
-                                            TaskDetailsPage(taskId: task['id']),
-                                  ),
-                                );
-                              },
-                              child: OngoingCard(
-                                title: task['title'],
-                                dueDate: formattedDate,
-                                percent: 0.6,
-                              ),
-                            );
-                          }).toList(),
-                    ),
-
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: supabase
+                      .from('tasks')
+                      .stream(primaryKey: ['id'])
+                      .eq('is_complete', false)
+                      .order('due_date', ascending: true),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text('No ongoing tasks.'));
+                    } else {
+                      final tasks = snapshot.data!;
+                      return Column(
+                        children: tasks.map((task) {
+                          final dueDate = DateTime.parse(task['due_date']);
+                          final formattedDate =
+                              DateFormat('d MMMM').format(dueDate);
+                          return FutureBuilder<double>(
+                            future: _calculateProgress(task['id']),
+                            builder: (context, progressSnapshot) {
+                              final progress = progressSnapshot.data ?? 0.0;
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TaskDetailsPage(taskId: task['id']),
+                                    ),
+                                  );
+                                },
+                                child: OngoingCard(
+                                  title: task['title'],
+                                  dueDate: formattedDate,
+                                  percent: progress,
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
+                      );
+                    }
+                  },
+                ),
                 const SizedBox(height: 20),
               ],
             ),
@@ -213,122 +214,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
-}
 
-// Reusable Card Widgets
+  Future<double> _calculateProgress(int taskId) async {
+    final subtasks = await supabase
+        .from('subtasks')
+        .select()
+        .eq('task_id', taskId);
 
-class CompletedCard extends StatelessWidget {
-  final String title;
-  final Color color;
+    if (subtasks.isEmpty) return 0.0;
 
-  const CompletedCard({super.key, required this.title, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: color),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Spacer(),
-          const Text("Team members", style: TextStyle(color: Colors.black87)),
-          Row(
-            children: const [
-              CircleAvatar(radius: 10, backgroundColor: Colors.white),
-              SizedBox(width: 4),
-              CircleAvatar(radius: 10, backgroundColor: Colors.white),
-              SizedBox(width: 4),
-              CircleAvatar(radius: 10, backgroundColor: Colors.white),
-            ],
-          ),
-          const SizedBox(height: 2),
-          const Text("Completed"),
-          const Text("100%", style: TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-}
-
-class OngoingCard extends StatelessWidget {
-  final String title;
-  final String dueDate;
-  final double percent;
-
-  const OngoingCard({
-    super.key,
-    required this.title,
-    required this.dueDate,
-    required this.percent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.lightBlue),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Team members",
-                  style: TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: const [
-                    CircleAvatar(radius: 10, backgroundColor: Colors.white),
-                    SizedBox(width: 4),
-                    CircleAvatar(radius: 10, backgroundColor: Colors.white),
-                    SizedBox(width: 4),
-                    CircleAvatar(radius: 10, backgroundColor: Colors.white),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Due on : $dueDate",
-                  style: const TextStyle(color: Colors.white60),
-                ),
-              ],
-            ),
-          ),
-          CircularPercentIndicator(
-            radius: 30,
-            lineWidth: 6,
-            percent: percent,
-            center: Text(
-              "${(percent * 100).toInt()}%",
-              style: const TextStyle(color: Colors.white),
-            ),
-            progressColor: Colors.amber,
-            backgroundColor: Colors.white24,
-          ),
-        ],
-      ),
-    );
+    final completed = subtasks.where((s) => s['is_complete'] == true).length;
+    return completed / subtasks.length;
   }
 }

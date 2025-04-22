@@ -1,5 +1,5 @@
 import 'package:daytask/constants/color.dart';
-import 'package:daytask/dashboard/task_tile.dart';
+import 'package:daytask/dashboard/add_task.dart';
 import 'package:daytask/views/calendar/calendar_screen.dart';
 import 'package:daytask/views/chat/chat_screen.dart';
 import 'package:daytask/views/home/home_screen.dart';
@@ -63,7 +63,7 @@ class CustomNavBar extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => TaskTile()),
+                MaterialPageRoute(builder: (context) => AddTask()),
               );
             },
             child: _buildCenterNavItem(),

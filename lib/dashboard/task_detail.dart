@@ -15,11 +15,13 @@ class TaskDetailsPage extends StatefulWidget {
 class _TaskDetailsPageState extends State<TaskDetailsPage> {
   final supabase = Supabase.instance.client;
   Map<String, dynamic>? task;
+  List<Map<String, dynamic>> subtasks = [];
 
   @override
   void initState() {
     super.initState();
     fetchTask();
+    fetchSubtasks();
   }
 
   Future<void> fetchTask() async {
@@ -29,6 +31,96 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
     setState(() {
       task = Map<String, dynamic>.from(response);
     });
+  }
+
+  Future<void> fetchSubtasks() async {
+    final response = await supabase
+        .from('subtasks')
+        .select()
+        .eq('task_id', widget.taskId);
+
+    setState(() {
+      subtasks = List<Map<String, dynamic>>.from(response);
+    });
+  }
+
+  Future<void> addSubtask(String title) async {
+    await supabase.from('subtasks').insert({
+      'task_id': widget.taskId,
+      'title': title,
+      'is_complete': false,
+    });
+
+    fetchSubtasks(); // Refresh list
+  }
+
+  Future<void> toggleSubtaskStatus(int id, bool isComplete) async {
+    await supabase
+        .from('subtasks')
+        .update({'is_complete': !isComplete})
+        .eq('id', id);
+
+    fetchSubtasks(); // Refresh list
+  }
+
+  double calculateProgress() {
+    if (subtasks.isEmpty) return 0.0;
+    int completedSubtasks =
+        subtasks.where((subtask) => subtask['is_complete']).length;
+    return completedSubtasks / subtasks.length;
+  }
+
+  void _showAddSubtaskBottomSheet() {
+    final controller = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.primaryColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Enter subtask title',
+                  hintStyle: TextStyle(color: Colors.white54),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white30),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  if (controller.text.trim().isNotEmpty) {
+                    addSubtask(controller.text.trim());
+                    Navigator.pop(context);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.buttonColor,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text(
+                  "Add Subtask",
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -232,9 +324,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                                   .eq('id', widget.taskId);
 
                               if (mounted) {
-                                Navigator.of(
-                                  context,
-                                ).pop(); // ✅ Pop TaskDetailsPage!
+                                Navigator.of(context).pop();
                               }
                             }
                           },
@@ -248,7 +338,6 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
           ),
         ],
       ),
-
       body:
           task == null
               ? const Center(child: CircularProgressIndicator())
@@ -294,38 +383,33 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                       style: const TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 24),
-                    Row(
+                    const Text(
+                      "Project Progress",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Stack(
+                      alignment: Alignment.center,
                       children: [
-                        const Text(
-                          "Project Progress",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            value: calculateProgress(),
+                            color: AppColors.buttonColor,
+                            backgroundColor: Colors.white24,
+                            strokeWidth: 4,
                           ),
                         ),
-                        const Spacer(),
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 40,
-                              height: 40,
-                              child: CircularProgressIndicator(
-                                value:
-                                    0.6, 
-                                color: AppColors.buttonColor,
-                                backgroundColor: Colors.white24,
-                                strokeWidth: 4,
-                              ),
-                            ),
-                            const Text(
-                              "60%",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          '${(calculateProgress() * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -339,14 +423,19 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: ListView(
-                        children: const [
-                          _taskTile("User Interviews", true),
-                          _taskTile("Wireframes", true),
-                          _taskTile("Design System", true),
-                          _taskTile("Icons", false),
-                          _taskTile("Final Mockups", false),
-                        ],
+                      child: ListView.builder(
+                        itemCount: subtasks.length,
+                        itemBuilder: (context, index) {
+                          final subtask = subtasks[index];
+                          return _taskTile(
+                            subtask['title'],
+                            subtask['is_complete'],
+                            () => toggleSubtaskStatus(
+                              subtask['id'],
+                              subtask['is_complete'],
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -356,9 +445,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
         color: AppColors.primaryColor,
         padding: const EdgeInsets.all(16),
         child: ElevatedButton(
-          onPressed: () {
-            // Navigate to add task page
-          },
+          onPressed: _showAddSubtaskBottomSheet,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.buttonColor,
             shape: RoundedRectangleBorder(),
@@ -389,41 +476,37 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
       ),
     );
   }
-}
 
-class _taskTile extends StatelessWidget {
-  final String title;
-  final bool isChecked;
-
-  const _taskTile(this.title, this.isChecked);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      height: 50,
-      decoration: BoxDecoration(
-        color: AppColors.lightBlue,
-      ),
-      child: Row(
-        children: [
-          Text(title, style: TextStyle(color: Colors.white, fontSize: 16)),
-          const Spacer(),
-          Container(
-            height: 24,
-            width: 24,
-            decoration: BoxDecoration(
-              color: isChecked ? AppColors.buttonColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(0),
-              border: Border.all(color: Colors.white70),
+  Widget _taskTile(String title, bool isChecked, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        height: 50,
+        decoration: BoxDecoration(color: AppColors.lightBlue),
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
-            child:
-                isChecked
-                    ? const Icon(Icons.check, size: 16, color: Colors.black)
-                    : null,
-          ),
-        ],
+            const Spacer(),
+            Container(
+              height: 24,
+              width: 24,
+              decoration: BoxDecoration(
+                color: isChecked ? AppColors.buttonColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(0),
+                border: Border.all(color: Colors.white70),
+              ),
+              child:
+                  isChecked
+                      ? const Icon(Icons.check, size: 16, color: Colors.black)
+                      : null,
+            ),
+          ],
+        ),
       ),
     );
   }
