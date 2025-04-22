@@ -103,8 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       height: 58,
                       width: 58,
-                      decoration:
-                          const BoxDecoration(color: AppColors.buttonColor),
+                      decoration: const BoxDecoration(color: AppColors.buttonColor),
                       child: SvgPicture.asset(
                         "assets/images/menu.svg",
                         color: Colors.black,
@@ -121,14 +120,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 160,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: const [
-                      CompletedCard(
-                        title: "Real Estate Website Design",
-                        color: AppColors.buttonColor,
-                      ),
-                    ],
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: supabase
+                        .from('tasks')
+                        .stream(primaryKey: ['id'])
+                        .eq('is_complete', true)
+                        .order('due_date', ascending: true),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(child: Text('No completed tasks.'));
+                      } else {
+                        final tasks = snapshot.data!;
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: tasks.length,
+                          itemBuilder: (context, index) {
+                            final task = tasks[index];
+                            final dueDate = DateTime.parse(task['due_date']);
+                            final formattedDate = DateFormat('d MMMM').format(dueDate);
+                            return CompletedCard(
+                              title: task['title'],
+                              color: AppColors.buttonColor,
+                              
+                            );
+                          },
+                        );
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -154,19 +176,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       return Column(
                         children: tasks.map((task) {
                           final dueDate = DateTime.parse(task['due_date']);
-                          final formattedDate =
-                              DateFormat('d MMMM').format(dueDate);
+                          final formattedDate = DateFormat('d MMMM').format(dueDate);
                           return FutureBuilder<double>(
                             future: _calculateProgress(task['id']),
                             builder: (context, progressSnapshot) {
                               final progress = progressSnapshot.data ?? 0.0;
+
+                              // If progress is 100%, update the task's status
+                              if (progress == 1.0) {
+                                _moveTaskToCompleted(task['id']);
+                              }
+
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          TaskDetailsPage(taskId: task['id']),
+                                      builder: (context) => TaskDetailsPage(taskId: task['id']),
                                     ),
                                   );
                                 },
@@ -225,5 +251,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final completed = subtasks.where((s) => s['is_complete'] == true).length;
     return completed / subtasks.length;
+  }
+
+  // Move task to Completed when progress reaches 100%
+  Future<void> _moveTaskToCompleted(int taskId) async {
+    final response = await supabase
+        .from('tasks')
+        .update({'is_complete': true})
+        .eq('id', taskId);
+
+    if (response.error == null) {
+      print("Task marked as completed: $taskId");
+    } else {
+      print("Error marking task complete: ${response.error?.message}");
+    }
   }
 }
