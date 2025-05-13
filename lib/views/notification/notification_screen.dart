@@ -146,6 +146,7 @@ class NotificationsPage extends StatelessWidget {
                       color: Colors.amber,
                       fontFamily: 'Inter',
                     ),
+                    
                   ),
                 ],
               ),

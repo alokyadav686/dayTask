@@ -51,10 +51,11 @@ class CustomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    
     return Container(
       width: double.infinity,
       height: 80,
-      decoration: BoxDecoration(color: Color.fromRGBO(38, 50, 56, 1)),
+      decoration: BoxDecoration(color: Color.fromRGBO(39, 47, 51, 1)),
       child: Row(
         children: [
           _buildNavItem("assets/images/home2.svg", "Home", 0),
